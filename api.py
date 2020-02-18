@@ -4,7 +4,7 @@ import os
 
 class PixabayAPI:
   def __init__(self, key, carpeta_imagenes):
-    self.key = key
+    self.key = '15310819-177b76768182e60465fa86c2d'
     self.carpeta_imagenes = carpeta_imagenes
     
   def buscar_imagenes(self, query, cantidad):
