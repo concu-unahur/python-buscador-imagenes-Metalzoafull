@@ -1,11 +1,28 @@
 import requests
 import json
 import os
+import threading
+import logging
+import time
+from PIL import Image
+import numpy as np
+from skimage import io, img_as_ubyte, transform, exposure
+from skimage.color import rgb2gray
+from pathlib import Path
+
+directorio_actual = Path.cwd()
+
+logging.basicConfig(format='%(asctime)s.%(msecs)03d [%(threadName)s] - %(message)s', datefmt='%H:%M:%S', level=logging.INFO)
+
 
 class PixabayAPI:
   def __init__(self, key, carpeta_imagenes):
     self.key = '15310819-177b76768182e60465fa86c2d'
     self.carpeta_imagenes = carpeta_imagenes
+    self.listaI = []
+    self.listaL = []
+    
+    
     
   def buscar_imagenes(self, query, cantidad):
     # URL de búsqueda. Ver la documentación en https://pixabay.com/api/docs/#api_search_images
@@ -54,3 +71,83 @@ class PixabayAPI:
     ruta_archivo = os.path.join(self.carpeta_imagenes, nombre_imagen)
     with open(ruta_archivo, 'wb') as archivo:
       archivo.write(bytes_imagen.content)
+    self.listaI.append(nombre_imagen)
+    #print(self.listaI)
+  
+  def lista_imagenes(self):
+    return self.lista_imagenes
+  
+  def armar_ruta(self,nombre):
+   return (directorio_actual / 'imagenes' / nombre).resolve()
+
+  def leer_imagen(self,nombre):
+   return io.imread(self.armar_ruta(nombre))
+
+  def escribir_imagen(self,nombre, imagen):
+   io.imsave(self.armar_ruta(nombre), img_as_ubyte(imagen))
+
+  def concatenar_horizontal(self,imagenes):
+  # Buscamos el alto menor entre todas las imágenes
+   alto_minimo = min(im.shape[0] for im in imagenes)
+
+  # Redimensionamos las imágenes para que tengan todas el mismo alto
+   imagenes_redimensionadas = [cv2.resize(im, (int(im.shape[1] * alto_minimo / im.shape[0]), alto_minimo))
+                    for im in imagenes]
+
+  # Concatenamos
+   return cv2.hconcat(imagenes_redimensionadas)
+  
+  def escala_de_grises(self, imagene):
+   original = imagene
+   img_gray = rgb2gray(original)
+   return img_gray
+
+  def rotacion(self, img, angulo):
+   return transform.rotate(img, angulo)
+
+  def contraste_adaptativo(self,img):
+   return exposure.equalize_adapthist(img, clip_limit=0.03)
+  
+  def contrastar(self):
+    for i in self.listaI:
+      aux = self.leer_imagen(i)
+      aux2 = self.contraste_adaptativo(aux)
+      self.escribir_imagen(i+"C.jpg",aux2)
+
+  def rotar(self):
+    for i in self.listaI:
+      aux = self.leer_imagen(i)
+      aux2 = self.rotacion(aux, 25)
+      self.escribir_imagen(i + "R.jpg",aux2)
+
+
+  def transform_Gris(self):
+    for i in self.listaI:
+      aux = self.leer_imagen(i)
+      aux2 = self.escala_de_grises(aux)
+      self.escribir_imagen(i +"N.jpg",aux2)
+
+  #def armar_ruta(self,nombre):
+  #  return os.path.join(self.carpeta_imagen, nombre)
+    #for i in self.listaI:
+    #  aux = i
+    #  aux1 = aux[:10]
+    #  return os.path.join(aux1,nombre)
+    #return os.path.join(self.carpeta_imagenes, nombre)
+  
+  #def escribir_imagen(self, nombre, imagen):
+  # Image.fromarray(imagen).save(self.armar_ruta(nombre))
+  
+  #def concatenar_horizontal(self):
+  # min_img_shape = sorted([(np.sum(i.size), i.size) for i in self.listaL])[0][1]
+  # return np.hstack(list((np.asarray(i.resize(min_img_shape, Image.ANTIALIAS)) for i in self.listaL)))
+  #def leer_imagen(self):
+  #  for i in self.listaI:
+  #    aux = i
+  #    self.listaL.append(Image.open(self.armar_ruta(aux[11:])))
+   # return self.listaL #Image.open(self.armar_ruta(aux1))
+  
+
+  #def concatenar_horizontal(imagenes):
+  # min_img_shape = sorted([(np.sum(i.size), i.size) for i in imagenes])[0][1]
+  # return np.hstack(list((np.asarray(i.resize(min_img_shape, Image.ANTIALIAS)) for i in imagenes)))
