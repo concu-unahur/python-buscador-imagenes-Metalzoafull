@@ -9,6 +9,7 @@ import numpy as np
 from skimage import io, img_as_ubyte, transform, exposure
 from skimage.color import rgb2gray
 from pathlib import Path
+import cv2
 
 directorio_actual = Path.cwd()
 
@@ -20,8 +21,11 @@ class PixabayAPI:
     self.key = '15310819-177b76768182e60465fa86c2d'
     self.carpeta_imagenes = carpeta_imagenes
     self.listaI = []
-    self.listaL = []
-    
+    self.listaG = []
+    self.listaC = []
+    self.listaR = []
+    self.cont = 3
+    self.nombre = "rojelio"
     
     
   def buscar_imagenes(self, query, cantidad):
@@ -86,21 +90,19 @@ class PixabayAPI:
   def escribir_imagen(self,nombre, imagen):
    io.imsave(self.armar_ruta(nombre), img_as_ubyte(imagen))
 
-  def concatenar_horizontal(self,imagenes):
-  # Buscamos el alto menor entre todas las imágenes
-   alto_minimo = min(im.shape[0] for im in imagenes)
+  def concatenar_vertical(self, imagenes):
+  # Buscamos el ancho menor entre todas las imágenes
+   ancho_minimo = min(im.shape[1] for im in imagenes)
 
-  # Redimensionamos las imágenes para que tengan todas el mismo alto
-   imagenes_redimensionadas = [cv2.resize(im, (int(im.shape[1] * alto_minimo / im.shape[0]), alto_minimo))
+  # Redimensionamos las imágenes para que tengan todas el mismo ancho
+   imagenes_redimensionadas = [cv2.resize(im, (ancho_minimo, int(im.shape[0] * ancho_minimo / im.shape[1])))
                     for im in imagenes]
 
   # Concatenamos
-   return cv2.hconcat(imagenes_redimensionadas)
+   return cv2.vconcat(imagenes_redimensionadas)
   
   def escala_de_grises(self, imagene):
-   original = imagene
-   img_gray = rgb2gray(original)
-   return img_gray
+    return rgb2gray(imagene)
 
   def rotacion(self, img, angulo):
    return transform.rotate(img, angulo)
@@ -109,23 +111,46 @@ class PixabayAPI:
    return exposure.equalize_adapthist(img, clip_limit=0.03)
   
   def contrastar(self):
-    for i in self.listaI:
-      aux = self.leer_imagen(i)
+    while(self.cont > 0):
+      aux = self.leer_imagen(self.listaI.pop(0))
       aux2 = self.contraste_adaptativo(aux)
-      self.escribir_imagen(i+"C.jpg",aux2)
+      self.listaC.append(aux2)
+      self.cont -= 1
+    self.cont = 3
+    #for i in self.listaI:
+    #  aux = self.leer_imagen(i)
+    #  aux2 = self.contraste_adaptativo(aux)
+    #  self.escribir_imagen("C"+i,aux2)
 
   def rotar(self):
-    for i in self.listaI:
-      aux = self.leer_imagen(i)
+    while(self.cont > 0):
+      aux = self.listaC.pop(0)
       aux2 = self.rotacion(aux, 25)
-      self.escribir_imagen(i + "R.jpg",aux2)
+      self.listaR.append(aux2)
+      self.cont -= 1
+    self.cont = 3
+      #self.listaR.append(aux2)
+    #for i in self.listaI:
+    #  aux = self.leer_imagen(i)
+    #  aux2 = self.rotacion(aux, 25)
+    #  self.escribir_imagen(i + "R.jpg",aux2)
 
 
   def transform_Gris(self):
-    for i in self.listaI:
-      aux = self.leer_imagen(i)
+    while(self.cont > 0):
+      aux = self.listaR.pop(0)
       aux2 = self.escala_de_grises(aux)
-      self.escribir_imagen(i +"N.jpg",aux2)
+      self.escribir_imagen(f"{self.cont}.jpg",aux2)
+      self.listaG.append(self.leer_imagen(f"{self.cont}.jpg"))
+      self.cont -= 1
+    self.cont = 3
+
+  def concatenacion(self):
+    self.escribir_imagen("roberto.jpg",self.concatenar_vertical(self.listaG))
+    #for i in self.listaI:
+    #  aux = self.leer_imagen(i)
+    #  aux2 = self.escala_de_grises(aux)
+    #  self.escribir_imagen(i +"N.jpg",aux2)
 
   #def armar_ruta(self,nombre):
   #  return os.path.join(self.carpeta_imagen, nombre)

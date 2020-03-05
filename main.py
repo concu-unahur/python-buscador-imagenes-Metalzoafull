@@ -18,7 +18,10 @@ for u in urls:
   logging.info(f'Descargando {u}')
   des = threading.Thread(target=api.descargar_imagen(u))
 
-comedia = threading.Thread(target=api.transform_Gris())
+comedia = threading.Thread(target=api.contrastar())
+hola = threading.Thread(target=api.rotar())
+risas = threading.Thread(target=api.transform_Gris())
+conc = threading.Thread(target=api.concatenacion())
 
 #lista = api.lista_imagenes()
 #logging.info(f'caca{lista}')
