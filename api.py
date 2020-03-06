@@ -21,11 +21,13 @@ class PixabayAPI:
     self.key = '15310819-177b76768182e60465fa86c2d'
     self.carpeta_imagenes = carpeta_imagenes
     self.listaI = []
-    self.listaG = []
-    self.listaC = []
-    self.listaR = []
+    #self.listaG = []
+    #self.listaC = []
+    #self.listaR = []
     self.cont = 3
     self.nombre = "rojelio"
+    self.monitorC = threading.Condition()
+    self.monitorR = threading.Condition()
     
     
   def buscar_imagenes(self, query, cantidad):
@@ -111,24 +113,35 @@ class PixabayAPI:
    return exposure.equalize_adapthist(img, clip_limit=0.03)
   
   def contrastar(self):
-    while(self.cont > 0):
-      aux = self.leer_imagen(self.listaI.pop(0))
-      aux2 = self.contraste_adaptativo(aux)
-      self.listaC.append(aux2)
-      self.cont -= 1
-    self.cont = 3
+    with self.monitorC:
+      while(True):
+       nombre = self.listaI.pop(0)
+       aux = self.leer_imagen(nombre)
+       aux2 = self.contraste_adaptativo(aux)
+       self.escribir_imagen("Cont"+nombre, aux2)
+       self.listaI.append("Cont"+nombre)
+      self.monitorR.notify()
+
+    #self.listaC.append(aux2)
     #for i in self.listaI:
     #  aux = self.leer_imagen(i)
     #  aux2 = self.contraste_adaptativo(aux)
     #  self.escribir_imagen("C"+i,aux2)
 
   def rotar(self):
-    while(self.cont > 0):
-      aux = self.listaC.pop(0)
-      aux2 = self.rotacion(aux, 25)
-      self.listaR.append(aux2)
-      self.cont -= 1
-    self.cont = 3
+    self.monitorR.wait()
+    listAux = [ palabra for palabra in self.listaI if palabra[:4] == 'Cont' ]
+    with self.monitorR:
+      while(True):
+       nombre = listAux.pop(0)
+       aux = self.leer_imagen(nombre)
+       aux2 = self.rotacion(aux, 25)
+       self.escribir_imagen("Rot"+ nombre, aux2)
+       self.listaI.append("Rot"+ nombre)
+       self.cont -= 1
+      self.cont = 3
+      #aux = self.listaC.pop(0)
+      #self.listaR.append(aux2)
       #self.listaR.append(aux2)
     #for i in self.listaI:
     #  aux = self.leer_imagen(i)
@@ -137,16 +150,20 @@ class PixabayAPI:
 
 
   def transform_Gris(self):
+    listAux = [ palabra for palabra in self.listaI if palabra[:3] == 'Rot' ]
     while(self.cont > 0):
-      aux = self.listaR.pop(0)
+      nombre = listAux.pop(0)
+      aux = self.leer_imagen(nombre)
       aux2 = self.escala_de_grises(aux)
-      self.escribir_imagen(f"{self.cont}.jpg",aux2)
-      self.listaG.append(self.leer_imagen(f"{self.cont}.jpg"))
+      self.escribir_imagen("Gris"+nombre,aux2)
+      self.listaI.append("Gris"+nombre)
+      #self.listaG.append(self.leer_imagen(f"{self.cont}.jpg"))
       self.cont -= 1
     self.cont = 3
 
   def concatenacion(self):
-    self.escribir_imagen("roberto.jpg",self.concatenar_vertical(self.listaG))
+    listAux = [ palabra for palabra in self.listaI if palabra[:4] == 'Gris' ]#esto esta mal, falta poner el leer
+    self.escribir_imagen("roberto.jpg",self.concatenar_vertical(listAux))
     #for i in self.listaI:
     #  aux = self.leer_imagen(i)
     #  aux2 = self.escala_de_grises(aux)
